@@ -33,28 +33,28 @@ def process_files(directory):
     for filename in os.listdir(directory):
         if filename.endswith("_cuisine.json"):
             with open(os.path.join(directory, filename), 'r', encoding='utf-8') as f:
-                print(f);
+                print(f)
                 cuisines = json.load(f)
                 for dish in cuisines:
-                    dish_uri = URIRef(f"http://example.org/Recipe/{format(dish['name'])}")
+                    dish_uri = URIRef(f"http://example.org/{format(dish['name'])}")
                     g.add((dish_uri, RDF.type, EX.Product))
                     g.add((dish_uri, EX.typeOfProduct, EX.Recipe))
                     
                     for ingredient in dish['ingredients']:
-                        ingredient_uri = URIRef(f"http://example.org/Ingredient/{format(ingredient)}")
+                        ingredient_uri = URIRef(f"http://example.org/{format(ingredient)}")
                         g.add((ingredient_uri, EX.typeOfProduct, EX.Ingredient))
                         g.add((ingredient_uri, RDF.type, EX.Product))
                         g.add((dish_uri, EX.hasIngredient, ingredient_uri))
 
         elif filename.endswith("_vitamins.json"):
             with open(os.path.join(directory, filename), 'r', encoding='utf-8') as f:
-                print(f);
+                print(f)
                 vitamins = json.load(f)
                 for food in vitamins:
-                    food_uri = URIRef(f"http://example.org/Ingredient/{format(food['name'])}")
+                    food_uri = URIRef(f"http://example.org/{format(food['name'])}")
                     g.add((food_uri, EX.typeOfProduct, EX.Ingredient))
                     for vitamin in food['vitamins']:
-                        vitamin_uri = URIRef(f"http://example.org/Vitamin/{format(vitamin)}")
+                        vitamin_uri = URIRef(f"http://example.org/{format(vitamin)}")
                         g.add((vitamin_uri, RDF.type, EX.Vitamin))
                         g.add((food_uri, EX.containsVitamin, vitamin_uri))
 
