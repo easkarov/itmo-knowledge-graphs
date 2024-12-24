@@ -1,5 +1,5 @@
 # Импортируем необходимые библиотеки
-from rdflib import Graph, Namespace
+from rdflib import Graph
 import sys
 
 
@@ -13,7 +13,7 @@ def main(rdf_file):
         print(f"Ошибка при загрузке RDF файла: {e}")
         sys.exit(1)
 
-    # 1. Какие рецепты содержат ингредиенты, которые одновременно являются источниками витаминов группы B (B1, B2, B6, B12)?
+    # 1. Какие рецепты предпочтиельнее выбрать человеку, страдающему недостатком витаминов группы B?
     query1 = """
     PREFIX ex: <http://example.org/>
 
@@ -30,55 +30,46 @@ def main(rdf_file):
     ORDER BY ?recipeName
     """
 
-    print("1. Рецепты с ингредиентами, содержащими витамины группы B (B1, B2, B6, B12):")
+    print("1. Какие рецепты предпочтительнее выбрать человеку, страдающему недостатком витаминов группы B:")
     for row in g.query(query1):
         print(f"Рецепт: {row.recipe}, Витамины: {row.vitamins}")
     print("\n" + "=" * 80 + "\n")
 
-    # 2. Какие блюда можно приготовить, используя только ингредиенты, которые являются источниками витамина A или витамина E?
+    # 2. Какие ингредиенты используются чаще всего?
     query2 = """
-    PREFIX ex: <http://example.org/>
-
-    SELECT ?recipe ?recipeName
-    WHERE {
-      ?recipe a ex:Product ;
-              ex:hasIngredient ?ingredient ;
-              ex:typeOfProduct ex:Recipe .
-
-      ?ingredient ex:containsVitamin ?vitamin .
-      FILTER(?vitamin IN (ex:витамин_а, ex:витамин_е))
-
-      # Убедимся, что все ингредиенты в рецепте соответствуют критерию
-      FILTER NOT EXISTS {
-        ?recipe ex:hasIngredient ?otherIngredient .
-        ?otherIngredient ex:containsVitamin ?otherVitamin .
-        FILTER(?otherVitamin NOT IN (ex:витамин_а, ex:витамин_е))
-      }
-    }
-    ORDER BY ?recipeName
+        PREFIX ex: <http://example.org/> 
+         
+        SELECT ?ingredient (COUNT(?recipe) AS ?usageCount) 
+        WHERE { 
+          ?recipe a ex:Product ; 
+                  ex:hasIngredient ?ingredient . 
+        } 
+        GROUP BY ?ingredient 
+        ORDER BY DESC(?usageCount) 
+        LIMIT 10
     """
 
-    print("2. Блюда, приготовляемые только из ингредиентов, содержащих витамины A или E:")
+    print("2. Какие ингредиенты используются чаще всего?")
     for row in g.query(query2):
-        print(f"Рецепт URI: {row.recipe}, Название: {row.recipeName}")
+        print(f"Рецепт URI: {row.ingredient}, Название: {row.usageCount}")
     print("\n" + "=" * 80 + "\n")
 
-    # 3. Сколько разных рецептов содержит общий ингредиент, например, муку (Flour)?
-    # Здесь предполагается, что ex:Flour существует в графе
+    # 3. Какие блюда и ингредиенты человеку лучше избегать с индивидуальной непереносимостью молока?
     query3 = """
     PREFIX ex: <http://example.org/>
 
-    SELECT (COUNT(DISTINCT ?recipe) AS ?recipeCount)
+    SELECT DISTINCT ?recipe
     WHERE {
       ?recipe a ex:Product ;
               ex:typeOfProduct ex:Recipe ;
-              ex:hasIngredient ex:мука .
+              ex:hasIngredient ex:молоко .
     }
+    ORDER BY ?recipe
     """
 
-    print("3. Количество рецептов, содержащих ингредиент 'мука':")
+    print("3. Какие блюда и ингредиенты человеку лучше избегать с индивидуальной непереносимостью молока:")
     for row in g.query(query3):
-        print(f"Количество рецептов: {row.recipeCount}")
+        print(f"Количество рецептов: {row.recipe}")
     print("\n" + "=" * 80 + "\n")
 
     # 4. Какие рецепты можно приготовить, если доступны только два конкретных ингредиента, например, "сахар, банан, мука"?
@@ -114,18 +105,19 @@ def main(rdf_file):
 
     SELECT ?recipe ?recipeName ?uniqueIngredient
     WHERE {
-      ?recipe a ex:Recipe ;
+      ?recipe a ex:Product ;
               ex:hasIngredient ?uniqueIngredient ;
               ex:typeOfProduct ?recipeName .
 
       # Проверяем, что этот ингредиент уникален
       FILTER NOT EXISTS {
-        ?otherRecipe a ex:Recipe ;
+        ?otherRecipe a ex:Product ;
                      ex:hasIngredient ?uniqueIngredient .
         FILTER(?otherRecipe != ?recipe)
       }
     }
     ORDER BY ?recipeName
+    LIMIT 10
     """
 
     print("5. Рецепты с уникальными ингредиентами, не используемыми в других рецептах:")
